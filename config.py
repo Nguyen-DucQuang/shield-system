@@ -22,4 +22,4 @@ class Config:
     # GUI settings
     WINDOW_WIDTH = 800
     WINDOW_HEIGHT = 600
-    FPS = 30
+    FPS = 60

@@ -8,7 +8,7 @@ from config import Config
 
 def main():
     print("=" * 50)
-    print("IRON DOME DEFENSE SYSTEM")
+    print("SHIELD SYSTEM AI")
     print("=" * 50)
     print("\nĐang khởi tạo hệ thống...")
     

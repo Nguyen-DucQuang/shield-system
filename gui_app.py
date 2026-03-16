@@ -22,8 +22,9 @@ class IronDomeGUI:
         self.launcher = launcher
         self.config = config
         
-        self.root.title("Iron Dome Defense System")
+        self.root.title("Shield System AI")
         self.root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
+        self.root.configure(bg="#111827")
         
         # Biến trạng thái
         self.is_running = False
@@ -31,58 +32,203 @@ class IronDomeGUI:
         self.auto_fire = True
         self.camera = None
         self.current_frame = None
-        
+        self.preview_size = (560, 300)
+
+        self.setup_styles()
         self.setup_ui()
         if cv2 is None:
             self.add_status("Thiếu thư viện opencv-python: tạm tắt camera.")
         if Image is None or ImageTk is None:
             self.add_status("Thiếu thư viện Pillow: không thể hiển thị frame camera.")
+
+    def setup_styles(self):
+        """Thiết lập style giúp giao diện hiện đại và dễ thao tác hơn."""
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
+
+        self.style.configure("App.TFrame", background="#111827")
+        self.style.configure("Card.TFrame", background="#1f2937")
+        self.style.configure(
+            "Title.TLabel",
+            background="#111827",
+            foreground="#f9fafb",
+            font=("Segoe UI", 18, "bold")
+        )
+        self.style.configure(
+            "Subtitle.TLabel",
+            background="#111827",
+            foreground="#9ca3af",
+            font=("Segoe UI", 10)
+        )
+        self.style.configure(
+            "TLabelframe",
+            background="#1f2937",
+            foreground="#e5e7eb",
+            borderwidth=1,
+            relief="solid"
+        )
+        self.style.configure(
+            "TLabelframe.Label",
+            background="#1f2937",
+            foreground="#f3f4f6",
+            font=("Segoe UI", 11, "bold")
+        )
+        self.style.configure(
+            "Primary.TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=(14, 10),
+            background="#2563eb",
+            foreground="#ffffff",
+            borderwidth=0
+        )
+        self.style.map(
+            "Primary.TButton",
+            background=[("active", "#1d4ed8"), ("disabled", "#374151")],
+            foreground=[("disabled", "#9ca3af")]
+        )
+        self.style.configure(
+            "Accent.TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=(14, 10),
+            background="#16a34a",
+            foreground="#ffffff",
+            borderwidth=0
+        )
+        self.style.map(
+            "Accent.TButton",
+            background=[("active", "#15803d"), ("disabled", "#374151")],
+            foreground=[("disabled", "#9ca3af")]
+        )
+        self.style.configure(
+            "Danger.TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=(14, 10),
+            background="#dc2626",
+            foreground="#ffffff",
+            borderwidth=0
+        )
+        self.style.map(
+            "Danger.TButton",
+            background=[("active", "#b91c1c")]
+        )
+        self.style.configure(
+            "Warning.TButton",
+            font=("Segoe UI", 11, "bold"),
+            padding=(14, 10),
+            background="#f59e0b",
+            foreground="#111827",
+            borderwidth=0
+        )
+        self.style.map(
+            "Warning.TButton",
+            background=[("active", "#d97706")]
+        )
+        self.style.configure(
+            "TCheckbutton",
+            background="#111827",
+            foreground="#e5e7eb",
+            font=("Segoe UI", 11, "bold")
+        )
         
     def setup_ui(self):
         """Thiết lập giao diện người dùng"""
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(0, weight=1)
+
         # Frame chính
-        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame = ttk.Frame(self.root, style="App.TFrame", padding="14")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.rowconfigure(2, weight=1)
+
+        # Header
+        header_frame = ttk.Frame(main_frame, style="App.TFrame")
+        header_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
+        ttk.Label(header_frame, text="Shield System AI - Bang dieu khien", style="Title.TLabel").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(
+            header_frame,
+            text="Theo doi muc tieu theo thoi gian thuc va dieu khien phong thu",
+            style="Subtitle.TLabel"
+        ).grid(row=1, column=0, sticky=tk.W)
         
         # Khu vực hiển thị camera
-        video_frame = ttk.LabelFrame(main_frame, text="Camera Feed", padding="5")
-        video_frame.grid(row=0, column=0, columnspan=3, pady=5)
+        video_frame = ttk.LabelFrame(main_frame, text="Camera Feed", padding="8")
+        video_frame.grid(row=2, column=0, pady=5, sticky=tk.W)
+        video_frame.columnconfigure(0, weight=1)
         
-        self.video_label = ttk.Label(video_frame)
-        self.video_label.grid(row=0, column=0)
+        self.video_label = ttk.Label(
+            video_frame,
+            anchor="center",
+            text="Khung camera preview",
+            style="Subtitle.TLabel"
+        )
+        self.video_label.grid(row=0, column=0, sticky=tk.W)
         
         # Thanh điều khiển
-        control_frame = ttk.Frame(main_frame)
-        control_frame.grid(row=1, column=0, columnspan=3, pady=10)
+        control_frame = ttk.Frame(main_frame, style="App.TFrame")
+        control_frame.grid(row=1, column=0, pady=(6, 8), sticky=(tk.W, tk.E))
+        for i in range(4):
+            control_frame.columnconfigure(i, weight=1)
         
-        self.start_btn = ttk.Button(control_frame, text="Kết nối Camera", 
-                                   command=self.toggle_camera)
-        self.start_btn.grid(row=0, column=0, padx=5)
+        self.start_btn = ttk.Button(
+            control_frame,
+            text="Kết nối Camera",
+            command=self.toggle_camera,
+            style="Primary.TButton",
+            width=20
+        )
+        self.start_btn.grid(row=0, column=0, padx=6, pady=2, sticky=(tk.W, tk.E))
         
-        self.track_btn = ttk.Button(control_frame, text="Bắt đầu theo dõi", 
-                                   command=self.start_tracking, state='disabled')
-        self.track_btn.grid(row=0, column=1, padx=5)
+        self.track_btn = ttk.Button(
+            control_frame,
+            text="Bắt đầu theo dõi",
+            command=self.toggle_tracking,
+            state='disabled',
+            style="Accent.TButton",
+            width=20
+        )
+        self.track_btn.grid(row=0, column=1, padx=6, pady=2, sticky=(tk.W, tk.E))
         
         self.auto_fire_var = tk.BooleanVar(value=True)
-        self.auto_fire_cb = ttk.Checkbutton(control_frame, text="Tự động khai hỏa", 
-                                           variable=self.auto_fire_var)
-        self.auto_fire_cb.grid(row=0, column=2, padx=5)
+        self.auto_fire_cb = ttk.Checkbutton(
+            control_frame,
+            text="Tự động khai hỏa",
+            variable=self.auto_fire_var
+        )
+        self.auto_fire_cb.grid(row=0, column=2, padx=6, pady=2, sticky=tk.W)
         
-        self.quit_btn = ttk.Button(control_frame, text="Thoát", 
-                                  command=self.quit_app)
-        self.quit_btn.grid(row=0, column=3, padx=5)
+        self.quit_btn = ttk.Button(
+            control_frame,
+            text="Thoát",
+            command=self.quit_app,
+            style="Danger.TButton",
+            width=16
+        )
+        self.quit_btn.grid(row=0, column=3, padx=6, pady=2, sticky=(tk.W, tk.E))
         
         # Khu vực thông tin
-        info_frame = ttk.LabelFrame(main_frame, text="Trạng thái hệ thống", padding="5")
-        info_frame.grid(row=2, column=0, columnspan=3, pady=5, sticky=(tk.W, tk.E))
+        info_frame = ttk.LabelFrame(main_frame, text="Trạng thái hệ thống", padding="8")
+        info_frame.grid(row=3, column=0, pady=(4, 0), sticky=(tk.W, tk.E, tk.N, tk.S))
+        info_frame.columnconfigure(0, weight=1)
+        info_frame.rowconfigure(0, weight=1)
         
-        self.status_text = tk.Text(info_frame, height=8, width=70)
-        self.status_text.grid(row=0, column=0, padx=5)
+        self.status_text = tk.Text(
+            info_frame,
+            height=6,
+            width=70,
+            bg="#0f172a",
+            fg="#e2e8f0",
+            insertbackground="#f8fafc",
+            relief="flat",
+            font=("Consolas", 10),
+            wrap="word"
+        )
+        self.status_text.grid(row=0, column=0, padx=4, pady=4, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Scrollbar cho status
         scrollbar = ttk.Scrollbar(info_frame, orient='vertical', 
                                   command=self.status_text.yview)
-        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S), pady=4)
         self.status_text.configure(yscrollcommand=scrollbar.set)
         
         self.add_status("Hệ thống đã sẵn sàng. Nhấn 'Kết nối Camera' để bắt đầu.")
@@ -120,7 +266,7 @@ class IronDomeGUI:
                 if self.camera.isOpened():
                     self.is_running = True
                     self.start_btn.config(text="Ngắt kết nối")
-                    self.track_btn.config(state='normal')
+                    self.track_btn.config(state='normal', text="Bắt đầu theo dõi", style="Accent.TButton")
                     self.add_status("Đã kết nối webcam laptop thành công!")
                     self.update_frame()
                 else:
@@ -130,17 +276,28 @@ class IronDomeGUI:
         else:
             self.is_running = False
             self.is_tracking = False
+            self.tracker.clear()
             if self.camera:
                 self.camera.release()
             self.start_btn.config(text="Kết nối Camera")
-            self.track_btn.config(state='disabled')
+            self.track_btn.config(state='disabled', text="Bắt đầu theo dõi", style="Accent.TButton")
             self.add_status("Đã ngắt kết nối camera.")
-            
-    def start_tracking(self):
-        """Bắt đầu theo dõi mục tiêu"""
-        self.is_tracking = True
-        self.track_btn.config(text="Đang theo dõi...", state='disabled')
-        self.add_status("Bắt đầu theo dõi mục tiêu...")
+
+    def toggle_tracking(self):
+        """Bật/tắt theo dõi mục tiêu."""
+        if not self.is_running:
+            self.add_status("Hãy kết nối camera trước khi bật theo dõi.")
+            return
+
+        if not self.is_tracking:
+            self.is_tracking = True
+            self.track_btn.config(text="Tắt theo dõi", style="Warning.TButton")
+            self.add_status("Đã bật theo dõi mục tiêu.")
+        else:
+            self.is_tracking = False
+            self.tracker.clear()
+            self.track_btn.config(text="Bắt đầu theo dõi", style="Accent.TButton")
+            self.add_status("Đã tắt theo dõi mục tiêu.")
         
     def update_frame(self):
         """Cập nhật frame từ camera"""
@@ -264,7 +421,7 @@ class IronDomeGUI:
         frame_pil = Image.fromarray(frame_rgb)
         
         # Resize để vừa với khung hình
-        frame_pil = frame_pil.resize((640, 480), Image.Resampling.LANCZOS)
+        frame_pil = frame_pil.resize(self.preview_size, Image.Resampling.LANCZOS)
         
         frame_tk = ImageTk.PhotoImage(frame_pil)
         self.video_label.config(image=frame_tk)
