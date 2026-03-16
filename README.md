@@ -87,11 +87,9 @@ python -m pip install opencv-python
 python -m pip install --upgrade ultralytics
 ```
 
-## Dinh huong phat trien
+## Dinh huong phat trien them cho SHIELD SYSTEM
 - Them re-identification cho nhieu muc tieu
 - Them che do ghi log/su kien
 - Tach module camera, detector, tracker thanh pipeline bat dong bo
 - Them unit test cho tracker va missile simulation
 
-## Giay phep
-Ban co the them thong tin license tuy theo muc dich su dung (MIT/Apache-2.0/...)
