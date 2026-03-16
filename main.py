@@ -24,7 +24,7 @@ def main():
     
     print("Hệ thống đã sẵn sàng!")
     print("\nHướng dẫn:")
-    print("1. Mở app IP Webcam trên điện thoại và Start Server")
+    print("1. Đảm bảo webcam laptop đang hoạt động")
     print("2. Nhấn 'Kết nối Camera' để bắt đầu")
     print("3. Nhấn 'Bắt đầu theo dõi' để phát hiện mục tiêu")
     print("4. Tick 'Tự động khai hỏa' để bắn tự động")

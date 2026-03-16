@@ -1,7 +1,7 @@
 # config.py
 class Config:
     # Camera settings
-    CAMERA_URL = "####"  # Thay IP của bạn
+    CAMERA_URL = 0  # Webcam laptop mac dinh (0). Thu 1, 2 neu may co nhieu camera.
     
     # Detection settings
     CONFIDENCE_THRESHOLD = 0.5

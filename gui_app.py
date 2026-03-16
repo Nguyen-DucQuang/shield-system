@@ -101,15 +101,30 @@ class IronDomeGUI:
 
         if not self.is_running:
             try:
-                self.camera = cv2.VideoCapture(self.config.CAMERA_URL)
+                source = self.config.CAMERA_URL
+                if isinstance(source, str) and source.isdigit():
+                    source = int(source)
+
+                self.camera = cv2.VideoCapture(source)
+
+                # Fallback: neu nguon cau hinh loi, thu webcam laptop mac dinh.
+                if not self.camera.isOpened() and source != 0:
+                    self.camera.release()
+                    self.camera = cv2.VideoCapture(0)
+
+                # Thu camera thu 2 neu camera 0 khong san sang.
+                if not self.camera.isOpened() and source != 1:
+                    self.camera.release()
+                    self.camera = cv2.VideoCapture(1)
+
                 if self.camera.isOpened():
                     self.is_running = True
                     self.start_btn.config(text="Ngắt kết nối")
                     self.track_btn.config(state='normal')
-                    self.add_status("Đã kết nối camera thành công!")
+                    self.add_status("Đã kết nối webcam laptop thành công!")
                     self.update_frame()
                 else:
-                    messagebox.showerror("Lỗi", "Không thể kết nối camera!")
+                    messagebox.showerror("Lỗi", "Không thể kết nối webcam. Thu doi CAMERA_URL = 0 hoac 1 trong config.py")
             except Exception as e:
                 messagebox.showerror("Lỗi", f"Lỗi kết nối camera: {str(e)}")
         else:
