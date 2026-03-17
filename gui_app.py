@@ -52,6 +52,7 @@ class IronDomeGUI:
         self.ai_prediction_var = tk.StringVar(value="Chưa có dữ liệu")
         self.ai_fire_rate_var = tk.StringVar(value=f"1 tên lửa / {self.fire_cooldown:.1f}s")
         self.ai_decision_var = tk.StringVar(value="AI đang ở chế độ giám sát")
+        self.current_target_fire_authorized = None
 
         self.setup_styles()
         self.setup_ui()
@@ -378,6 +379,7 @@ class IronDomeGUI:
         else:
             self.is_running = False
             self.is_tracking = False
+            self.current_target_fire_authorized = None
             self.tracker.clear()
             if self.camera:
                 self.camera.release()
@@ -399,6 +401,7 @@ class IronDomeGUI:
             self.add_status("Đã bật theo dõi mục tiêu.")
         else:
             self.is_tracking = False
+            self.current_target_fire_authorized = None
             self.tracker.clear()
             self.track_btn.config(text="Bắt đầu theo dõi", style="Accent.TButton")
             self.update_ai_status_panel(note="Đã tắt theo dõi, AI quay về chế độ giám sát")
@@ -442,13 +445,27 @@ class IronDomeGUI:
             if detections:
                 target = detections[0]
                 bbox = target['bbox']
-                self.tracker.add_tracker(frame, bbox)
+                self.tracker.add_tracker(
+                    frame,
+                    bbox,
+                    class_id=target.get('class_id'),
+                    class_name=target.get('class_name')
+                )
+
+                target_name = target.get('class_name', 'unknown')
+                if self.is_air_target(target_name):
+                    self.current_target_fire_authorized = self.ask_fire_confirmation(target)
+                else:
+                    self.current_target_fire_authorized = True
+
                 self.update_ai_status_panel(
                     target=self.tracker.current_target,
                     predicted_pos=None,
                     note="Đã khóa mục tiêu, AI đang thu thập thêm quỹ đạo"
                 )
-                self.add_status(f"Đã phát hiện mục tiêu! Độ tin cậy: {target['confidence']:.2f}")
+                self.add_status(
+                    f"Đã phát hiện mục tiêu: {target_name} | Độ tin cậy: {target['confidence']:.2f}"
+                )
             else:
                 self.update_ai_status_panel(note="AI chưa phát hiện mục tiêu trong khung hình")
         else:
@@ -478,7 +495,36 @@ class IronDomeGUI:
 
                 self.update_ai_status_panel(target=target, predicted_pos=predicted_pos, note=note)
             else:
+                self.current_target_fire_authorized = None
                 self.update_ai_status_panel(note="Mất dấu mục tiêu, AI đang quét lại")
+
+    def is_air_target(self, class_name):
+        """Xác định các mục tiêu bắt buộc xác nhận khai hỏa từ người vận hành."""
+        if not class_name:
+            return False
+        name = str(class_name).strip().lower()
+        keywords = ("airplane", "plane", "drone", "uav", "helicopter", "may bay", "máy bay")
+        return any(keyword in name for keyword in keywords)
+
+    def ask_fire_confirmation(self, detection):
+        """Hiển thị hộp thoại xác nhận khai hỏa khi phát hiện mục tiêu bay."""
+        class_name = detection.get('class_name', 'unknown')
+        confidence = detection.get('confidence', 0.0)
+        target_pos = detection.get('center')
+        message = (
+            "Phát hiện mục tiêu bay có nguy cơ xâm nhập.\n\n"
+            f"Loại mục tiêu: {class_name}\n"
+            f"Độ tin cậy: {confidence:.2f}\n"
+            f"Tọa độ hiện tại: {target_pos}\n\n"
+            "Xác nhận khai hỏa khi mục tiêu vào vùng bảo vệ?"
+        )
+
+        is_authorized = messagebox.askyesno("Xác nhận khai hỏa", message)
+        if is_authorized:
+            self.add_status("Người vận hành đã CHẤP THUẬN khai hỏa mục tiêu bay.")
+        else:
+            self.add_status("Người vận hành đã TỪ CHỐI khai hỏa mục tiêu bay.")
+        return is_authorized
                     
     def draw_protected_zone(self, frame):
         """Vẽ khu vực bảo vệ"""
@@ -518,6 +564,9 @@ class IronDomeGUI:
                         
     def check_and_fire(self, target, predicted_pos=None):
         """Kiểm tra và bắn tên lửa nếu cần"""
+        if self.current_target_fire_authorized is False:
+            return "Đang chờ lệnh mới: người vận hành đã từ chối khai hỏa"
+
         predicted_pos = predicted_pos or self.tracker.predict_future_position(frames_ahead=10)
         if not predicted_pos:
             return "Chưa đủ dữ liệu để dự đoán điểm chặn"

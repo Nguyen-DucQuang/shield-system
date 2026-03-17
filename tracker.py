@@ -42,7 +42,7 @@ class TargetTracker:
 
         return None
         
-    def add_tracker(self, frame, bbox):
+    def add_tracker(self, frame, bbox, class_id=None, class_name=None):
         """Thêm tracker mới cho mục tiêu"""
         x, y, w, h = [int(v) for v in bbox]
         w = max(1, w)
@@ -61,7 +61,9 @@ class TargetTracker:
         self.current_target = {
             'bbox': (x, y, w, h),
             'center': center,
-            'velocity': (0, 0)
+            'velocity': (0, 0),
+            'class_id': class_id,
+            'class_name': class_name or "unknown"
         }
         
     def update(self, frame):
@@ -69,11 +71,15 @@ class TargetTracker:
         if self.fallback_mode and self.current_target:
             x, y, w, h = self.current_target['bbox']
             vx, vy = self.current_target['velocity']
+            previous_class_id = self.current_target.get('class_id')
+            previous_class_name = self.current_target.get('class_name', "unknown")
             next_center = (x + w // 2 + int(vx), y + h // 2 + int(vy))
             self.current_target = {
                 'bbox': (x + int(vx), y + int(vy), w, h),
                 'center': next_center,
-                'velocity': (vx, vy)
+                'velocity': (vx, vy),
+                'class_id': previous_class_id,
+                'class_name': previous_class_name
             }
             return self.current_target
 
@@ -85,6 +91,8 @@ class TargetTracker:
         if success:
             x, y, w, h = [int(v) for v in bbox]
             center = (x + w//2, y + h//2)
+            previous_class_id = self.current_target.get('class_id') if self.current_target else None
+            previous_class_name = self.current_target.get('class_name') if self.current_target else "unknown"
             
             # Lưu vị trí hiện tại
             if self.current_target:
@@ -93,7 +101,9 @@ class TargetTracker:
             self.current_target = {
                 'bbox': (x, y, w, h),
                 'center': center,
-                'velocity': self._calculate_velocity(center)
+                'velocity': self._calculate_velocity(center),
+                'class_id': previous_class_id,
+                'class_name': previous_class_name
             }
             
             self.target_lost_counter = 0
