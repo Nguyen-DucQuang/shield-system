@@ -18,8 +18,9 @@ class Config:
     # Missile settings
     MISSILE_SPEED = 10
     EXPLOSION_RADIUS = 50
+    FIRE_COOLDOWN_SECONDS = 1.0
     
     # GUI settings
-    WINDOW_WIDTH = 800
-    WINDOW_HEIGHT = 600
+    WINDOW_WIDTH = 1000
+    WINDOW_HEIGHT = 780
     FPS = 60
