@@ -32,7 +32,7 @@ class IronDomeGUI:
         min_window_width = self.preview_size[0] + self.heatmap_size[0] + 80
         window_width = max(config.WINDOW_WIDTH, min_window_width)
         
-        self.root.title("Shield System AI")
+        self.root.title("NeuroShield AI")
         self.root.geometry(f"{window_width}x{config.WINDOW_HEIGHT}")
         self.root.minsize(window_width, config.WINDOW_HEIGHT)
         self.root.configure(bg="#111827")
@@ -53,6 +53,7 @@ class IronDomeGUI:
         self.ai_fire_rate_var = tk.StringVar(value=f"1 tên lửa / {self.fire_cooldown:.1f}s")
         self.ai_decision_var = tk.StringVar(value="AI đang ở chế độ giám sát")
         self.current_target_fire_authorized = None
+        self.last_status_log_by_key = {}
 
         self.setup_styles()
         self.setup_ui()
@@ -171,7 +172,7 @@ class IronDomeGUI:
         # Header
         header_frame = ttk.Frame(main_frame, style="App.TFrame")
         header_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
-        ttk.Label(header_frame, text="Shield System AI - Bang dieu khien", style="Title.TLabel").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(header_frame, text="NeuroShield AI - Bang dieu khien", style="Title.TLabel").grid(row=0, column=0, sticky=tk.W)
         ttk.Label(
             header_frame,
             text="Theo doi muc tieu theo thoi gian thuc va dieu khien phong thu",
@@ -270,9 +271,14 @@ class IronDomeGUI:
         )
         self.quit_btn.grid(row=0, column=3, padx=6, pady=2, sticky=(tk.W, tk.E))
         
-        # Khu vực trạng thái hệ thống (nhỏ, full-width)
-        info_frame = ttk.LabelFrame(main_frame, text="Trạng thái hệ thống", padding="6")
-        info_frame.grid(row=3, column=0, pady=(4, 0), sticky=(tk.W, tk.E))
+        # Khu vực thông tin phía dưới: trái là trạng thái, phải là biểu đồ dự đoán
+        bottom_frame = ttk.Frame(main_frame, style="App.TFrame")
+        bottom_frame.grid(row=3, column=0, pady=(4, 0), sticky=(tk.W, tk.E))
+        bottom_frame.columnconfigure(0, weight=1, uniform="bottom-split")
+        bottom_frame.columnconfigure(1, weight=1, uniform="bottom-split")
+
+        info_frame = ttk.LabelFrame(bottom_frame, text="Trạng thái hệ thống", padding="6")
+        info_frame.grid(row=0, column=0, padx=(0, 6), sticky=(tk.W, tk.E))
         info_frame.columnconfigure(0, weight=1)
 
         self.status_text = tk.Text(
@@ -291,6 +297,19 @@ class IronDomeGUI:
                                   command=self.status_text.yview)
         scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S), pady=4)
         self.status_text.configure(yscrollcommand=scrollbar.set)
+
+        chart_frame = ttk.LabelFrame(bottom_frame, text="Biểu đồ dự đoán hướng di chuyển", padding="6")
+        chart_frame.grid(row=0, column=1, padx=(6, 0), sticky=(tk.W, tk.E))
+        chart_frame.columnconfigure(0, weight=1)
+        self.bottom_chart_height = 220
+
+        self.heatmap_label = ttk.Label(
+            chart_frame,
+            text="Đang chờ dữ liệu quỹ đạo...",
+            style="Subtitle.TLabel",
+            anchor="center"
+        )
+        self.heatmap_label.grid(row=0, column=0, padx=4, pady=4, sticky=(tk.W, tk.E))
 
         self.add_status("Hệ thống đã sẵn sàng. Nhấn 'Kết nối Camera' để bắt đầu.")
         
@@ -430,6 +449,9 @@ class IronDomeGUI:
                 
                 # Vẽ bệ phóng
                 self.draw_launcher(frame)
+
+                # Cập nhật biểu đồ dự đoán ở panel bên phải phía dưới
+                self.update_heatmap(frame.shape)
                 
                 # Chuyển đổi frame để hiển thị
                 self.display_frame(frame)
@@ -443,7 +465,24 @@ class IronDomeGUI:
             # Phát hiện mục tiêu mới
             detections = self.detector.detect(frame)
             if detections:
-                target = detections[0]
+                target = self.select_lockable_target(detections)
+                if not target:
+                    self.current_target_fire_authorized = False
+                    human_detection = next((d for d in detections if self.is_human_target(d.get('class_name'))), None)
+                    if human_detection:
+                        self.log_status_with_cooldown(
+                            "human-block",
+                            "Phát hiện con người: khóa an toàn đang bật, hệ thống KHÔNG khai hỏa."
+                        )
+                        self.update_ai_status_panel(note="Mục tiêu là con người, AI từ chối khóa bắn")
+                    else:
+                        self.log_status_with_cooldown(
+                            "non-air-block",
+                            "Mục tiêu không phải máy bay/UAV, AI bỏ qua và tiếp tục quét."
+                        )
+                        self.update_ai_status_panel(note="Chỉ khóa mục tiêu máy bay hoặc drone UAV")
+                    return
+
                 bbox = target['bbox']
                 self.tracker.add_tracker(
                     frame,
@@ -451,23 +490,26 @@ class IronDomeGUI:
                     class_id=target.get('class_id'),
                     class_name=target.get('class_name')
                 )
+                self.log_lock_command(target)
 
                 target_name = target.get('class_name', 'unknown')
-                if self.is_air_target(target_name):
-                    self.current_target_fire_authorized = self.ask_fire_confirmation(target)
-                else:
-                    self.current_target_fire_authorized = True
+                self.current_target_fire_authorized = self.ask_fire_confirmation(target)
+
+                lock_note = "Đã khóa mục tiêu máy bay/UAV, đang giám sát quỹ đạo"
+                if self.current_target_fire_authorized is False:
+                    lock_note = "Mục tiêu đã khóa nhưng chưa được phép khai hỏa"
 
                 self.update_ai_status_panel(
                     target=self.tracker.current_target,
                     predicted_pos=None,
-                    note="Đã khóa mục tiêu, AI đang thu thập thêm quỹ đạo"
+                    note=lock_note
                 )
                 self.add_status(
                     f"Đã phát hiện mục tiêu: {target_name} | Độ tin cậy: {target['confidence']:.2f}"
                 )
             else:
-                self.update_ai_status_panel(note="AI chưa phát hiện mục tiêu trong khung hình")
+                self.current_target_fire_authorized = None
+                self.update_ai_status_panel(note="AI chưa phát hiện máy bay/UAV trong khung hình")
         else:
             # Theo dõi mục tiêu hiện tại
             target = self.tracker.update(frame)
@@ -499,12 +541,35 @@ class IronDomeGUI:
                 self.update_ai_status_panel(note="Mất dấu mục tiêu, AI đang quét lại")
 
     def is_air_target(self, class_name):
-        """Xác định các mục tiêu bắt buộc xác nhận khai hỏa từ người vận hành."""
+        """Xác định mục tiêu bay đủ điều kiện khóa và xin phép khai hỏa."""
         if not class_name:
             return False
         name = str(class_name).strip().lower()
         keywords = ("airplane", "plane", "drone", "uav", "helicopter", "may bay", "máy bay")
         return any(keyword in name for keyword in keywords)
+
+    def is_human_target(self, class_name):
+        """Xác định mục tiêu là con người để khóa an toàn, không cho phép bắn."""
+        if not class_name:
+            return False
+        name = str(class_name).strip().lower()
+        keywords = ("person", "human", "nguoi", "người")
+        return any(keyword in name for keyword in keywords)
+
+    def select_lockable_target(self, detections):
+        """Chỉ chọn mục tiêu có thể khóa: máy bay hoặc drone/UAV."""
+        for detection in detections:
+            if self.is_air_target(detection.get('class_name')):
+                return detection
+        return None
+
+    def log_status_with_cooldown(self, key, message, cooldown=2.0):
+        """Giảm spam log trạng thái khi cùng một cảnh báo lặp lại liên tục."""
+        now = time.time()
+        last_time = self.last_status_log_by_key.get(key, 0.0)
+        if now - last_time >= cooldown:
+            self.last_status_log_by_key[key] = now
+            self.add_status(message)
 
     def ask_fire_confirmation(self, detection):
         """Hiển thị hộp thoại xác nhận khai hỏa khi phát hiện mục tiêu bay."""
@@ -520,11 +585,28 @@ class IronDomeGUI:
         )
 
         is_authorized = messagebox.askyesno("Xác nhận khai hỏa", message)
+        self.log_confirmation_command(detection, is_authorized)
         if is_authorized:
             self.add_status("Người vận hành đã CHẤP THUẬN khai hỏa mục tiêu bay.")
         else:
             self.add_status("Người vận hành đã TỪ CHỐI khai hỏa mục tiêu bay.")
         return is_authorized
+
+    def log_lock_command(self, detection):
+        """Ghi nhận lệnh khóa mục tiêu vào bảng trạng thái."""
+        class_name = detection.get('class_name', 'unknown')
+        center = detection.get('center')
+        confidence = detection.get('confidence', 0.0)
+        self.add_status(
+            f"LỆNH KHOÁ MỤC TIÊU | loại={class_name} | tin_cậy={confidence:.2f} | tọa_độ={center}"
+        )
+
+    def log_confirmation_command(self, detection, is_authorized):
+        """Ghi nhận lệnh xác nhận mục tiêu trước khai hỏa."""
+        class_name = detection.get('class_name', 'unknown')
+        center = detection.get('center')
+        command = "XÁC NHẬN MỤC TIÊU: CHẤP THUẬN" if is_authorized else "XÁC NHẬN MỤC TIÊU: TỪ CHỐI"
+        self.add_status(f"{command} | loại={class_name} | tọa_độ={center}")
                     
     def draw_protected_zone(self, frame):
         """Vẽ khu vực bảo vệ"""
@@ -564,6 +646,10 @@ class IronDomeGUI:
                         
     def check_and_fire(self, target, predicted_pos=None):
         """Kiểm tra và bắn tên lửa nếu cần"""
+        target_name = target.get('class_name', '')
+        if not self.is_air_target(target_name):
+            return "Chế độ an toàn: chỉ cho phép bắn mục tiêu máy bay/UAV"
+
         if self.current_target_fire_authorized is False:
             return "Đang chờ lệnh mới: người vận hành đã từ chối khai hỏa"
 
@@ -611,6 +697,9 @@ class IronDomeGUI:
 
     def update_heatmap(self, frame_shape):
         """Hiển thị heatmap quỹ đạo và hướng di chuyển dự đoán ở bên phải camera."""
+        if self.heatmap_label is None:
+            return
+
         if cv2 is None or np is None or Image is None or ImageTk is None or ImageDraw is None:
             self.heatmap_label.config(text="Thiếu thư viện để dựng heatmap", image="")
             self.heatmap_label.image = None
@@ -622,7 +711,10 @@ class IronDomeGUI:
         if hmap_w < 10:
             hmap_w = self.heatmap_size[0]
         if hmap_h < 10:
-            hmap_h = max(self.video_label.winfo_height(), self.heatmap_size[1])
+            hmap_h = self.bottom_chart_height
+
+        # Giữ kích cỡ biểu đồ nhỏ tương đương thanh trạng thái hệ thống cũ.
+        hmap_h = min(hmap_h, self.bottom_chart_height)
 
         heatmap = self.build_prediction_heatmap(frame_shape, hmap_w, hmap_h)
         heatmap_tk = ImageTk.PhotoImage(heatmap)
