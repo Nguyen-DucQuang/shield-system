@@ -12,25 +12,25 @@ class TargetDetector:
         self.target_classes = [0, 2, 4, 5, 7]  # person, car, airplane, bus, truck
 
     def _ensure_model(self):
-        """Nạp model theo kiểu lazy-load để tránh crash khi thiếu thư viện."""
+        """Lazy-load the model to avoid crashes when libraries are missing."""
         if self.model is not None or self.model_load_failed:
             return
 
         if YOLO is None:
             self.model_load_failed = True
-            print("Cảnh báo: thiếu thư viện ultralytics, tạm tắt phát hiện mục tiêu.")
+            print("Warning: ultralytics library is missing, target detection disabled.")
             return
 
         try:
-            print("Đang tải mô hình YOLOv8...")
-            self.model = YOLO('yolov8n.pt')  # Model nhẹ, chạy nhanh
-            print("Đã tải xong mô hình!")
+            print("Loading YOLOv8 model...")
+            self.model = YOLO('yolov8n.pt')  # Lightweight model, fast inference
+            print("Model loaded successfully!")
         except Exception as exc:
             self.model_load_failed = True
-            print(f"Cảnh báo: không thể tải YOLO ({exc}). Tạm tắt phát hiện mục tiêu.")
+            print(f"Warning: could not load YOLO ({exc}). Target detection disabled.")
         
     def detect(self, frame):
-        """Phát hiện vật thể trong frame"""
+        """Detect objects in a frame."""
         self._ensure_model()
         if self.model is None:
             return []

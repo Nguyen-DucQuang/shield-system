@@ -37,7 +37,7 @@ class IronDomeGUI:
         self.root.minsize(window_width, config.WINDOW_HEIGHT)
         self.root.configure(bg="#111827")
         
-        # Biến trạng thái
+        # State variables
         self.is_running = False
         self.is_tracking = False
         self.camera = None
@@ -47,11 +47,11 @@ class IronDomeGUI:
         self.launcher.missile_speed = getattr(config, "MISSILE_SPEED", self.launcher.missile_speed)
         self.auto_fire_var = tk.BooleanVar(value=True)
         self.auto_fire_label_var = tk.StringVar()
-        self.ai_direction_var = tk.StringVar(value="Đang chờ mục tiêu")
+        self.ai_direction_var = tk.StringVar(value="Awaiting target")
         self.ai_velocity_var = tk.StringVar(value="0.0 px/frame")
-        self.ai_prediction_var = tk.StringVar(value="Chưa có dữ liệu")
-        self.ai_fire_rate_var = tk.StringVar(value=f"1 tên lửa / {self.fire_cooldown:.1f}s")
-        self.ai_decision_var = tk.StringVar(value="AI đang ở chế độ giám sát")
+        self.ai_prediction_var = tk.StringVar(value="No data available")
+        self.ai_fire_rate_var = tk.StringVar(value=f"1 missile / {self.fire_cooldown:.1f}s")
+        self.ai_decision_var = tk.StringVar(value="AI in monitoring mode")
         self.current_target_fire_authorized = None
         self.last_status_log_by_key = {}
 
@@ -60,12 +60,12 @@ class IronDomeGUI:
         self.update_auto_fire_button()
         self.update_ai_status_panel()
         if cv2 is None:
-            self.add_status("Thiếu thư viện opencv-python: tạm tắt camera.")
+            self.add_status("Missing library opencv-python: camera disabled.")
         if Image is None or ImageTk is None:
-            self.add_status("Thiếu thư viện Pillow: không thể hiển thị frame camera.")
+            self.add_status("Missing library Pillow: cannot display camera frame.")
 
     def setup_styles(self):
-        """Thiết lập style giúp giao diện hiện đại và dễ thao tác hơn."""
+        """Configure styles for a modern and user-friendly interface."""
         self.style = ttk.Style()
         self.style.theme_use("clam")
 
@@ -159,11 +159,11 @@ class IronDomeGUI:
         )
         
     def setup_ui(self):
-        """Thiết lập giao diện người dùng"""
+        """Set up the user interface."""
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
-        # Frame chính
+        # Main frame
         main_frame = ttk.Frame(self.root, style="App.TFrame", padding="14")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         main_frame.columnconfigure(0, weight=1)
@@ -172,14 +172,14 @@ class IronDomeGUI:
         # Header
         header_frame = ttk.Frame(main_frame, style="App.TFrame")
         header_frame.grid(row=0, column=0, sticky=(tk.W, tk.E), pady=(0, 10))
-        ttk.Label(header_frame, text="NeuroShield AI - Bang dieu khien", style="Title.TLabel").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(header_frame, text="NeuroShield AI - Control Panel", style="Title.TLabel").grid(row=0, column=0, sticky=tk.W)
         ttk.Label(
             header_frame,
-            text="Theo doi muc tieu theo thoi gian thuc va dieu khien phong thu",
+            text="Real-time target tracking and defense control",
             style="Subtitle.TLabel"
         ).grid(row=1, column=0, sticky=tk.W)
         
-        # Khu vực hiển thị camera
+        # Camera display area
         video_frame = ttk.LabelFrame(main_frame, text="Camera Feed", padding="8")
         video_frame.grid(row=2, column=0, pady=5, sticky=(tk.W, tk.E))
         video_frame.columnconfigure(0, weight=1, uniform="video-split")
@@ -189,7 +189,7 @@ class IronDomeGUI:
         self.video_label = ttk.Label(
             video_frame,
             anchor="center",
-            text="Khung camera preview",
+            text="Camera Preview",
             style="Subtitle.TLabel"
         )
         self.video_label.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.W, tk.E), padx=(0, 10))
@@ -198,14 +198,14 @@ class IronDomeGUI:
         ai_top_panel.grid(row=0, column=1, sticky=(tk.N, tk.S, tk.W, tk.E))
         ai_top_panel.columnconfigure(1, weight=1)
 
-        ttk.Label(ai_top_panel, text="AI DỰ ĐOÁN HƯỚNG DI CHUYỂN",
+        ttk.Label(ai_top_panel, text="AI MOVEMENT DIRECTION PREDICTION",
                   style="CardTitle.TLabel").grid(row=0, column=0, columnspan=2, sticky=tk.W, pady=(0, 14))
 
         metrics = [
-            ("Hướng di chuyển",  self.ai_direction_var,  1),
-            ("Vận tốc mục tiêu", self.ai_velocity_var,   2),
-            ("Vị trí dự đoán",   self.ai_prediction_var, 3),
-            ("Nhịp bắn an toàn", self.ai_fire_rate_var,  4),
+            ("Movement Direction",  self.ai_direction_var,  1),
+            ("Target Velocity",     self.ai_velocity_var,   2),
+            ("Predicted Position",  self.ai_prediction_var, 3),
+            ("Safe Fire Rate",      self.ai_fire_rate_var,  4),
         ]
         for label_text, var, row in metrics:
             ttk.Label(ai_top_panel, text=label_text,
@@ -213,14 +213,14 @@ class IronDomeGUI:
             ttk.Label(ai_top_panel, textvariable=var,
                       style="MetricValue.TLabel").grid(row=row, column=1, sticky=tk.W, pady=(0, 10))
 
-        ttk.Label(ai_top_panel, text="Đánh giá AI",
+        ttk.Label(ai_top_panel, text="AI Assessment",
                   style="MetricLabel.TLabel").grid(row=5, column=0, sticky=(tk.N, tk.W), padx=(0, 16))
         ttk.Label(ai_top_panel, textvariable=self.ai_decision_var,
                   style="MetricNote.TLabel").grid(row=5, column=1, sticky=(tk.W, tk.E))
 
         self.heatmap_label = None
         
-        # Thanh điều khiển
+        # Control bar
         control_frame = ttk.Frame(main_frame, style="App.TFrame")
         control_frame.grid(row=1, column=0, pady=(6, 8), sticky=(tk.W, tk.E))
         for i in range(4):
@@ -228,7 +228,7 @@ class IronDomeGUI:
         
         self.start_btn = ttk.Button(
             control_frame,
-            text="Kết nối Camera",
+            text="Connect Camera",
             command=self.toggle_camera,
             style="Primary.TButton",
             width=20
@@ -237,7 +237,7 @@ class IronDomeGUI:
         
         self.track_btn = ttk.Button(
             control_frame,
-            text="Bắt đầu theo dõi",
+            text="Start Tracking",
             command=self.toggle_tracking,
             state='disabled',
             style="Accent.TButton",
@@ -264,20 +264,20 @@ class IronDomeGUI:
         
         self.quit_btn = ttk.Button(
             control_frame,
-            text="Thoát",
+            text="Quit",
             command=self.quit_app,
             style="Danger.TButton",
             width=16
         )
         self.quit_btn.grid(row=0, column=3, padx=6, pady=2, sticky=(tk.W, tk.E))
         
-        # Khu vực thông tin phía dưới: trái là trạng thái, phải là biểu đồ dự đoán
+        # Bottom information area: left = status log, right = prediction chart
         bottom_frame = ttk.Frame(main_frame, style="App.TFrame")
         bottom_frame.grid(row=3, column=0, pady=(4, 0), sticky=(tk.W, tk.E))
         bottom_frame.columnconfigure(0, weight=1, uniform="bottom-split")
         bottom_frame.columnconfigure(1, weight=1, uniform="bottom-split")
 
-        info_frame = ttk.LabelFrame(bottom_frame, text="Trạng thái hệ thống", padding="6")
+        info_frame = ttk.LabelFrame(bottom_frame, text="System Status", padding="6")
         info_frame.grid(row=0, column=0, padx=(0, 6), sticky=(tk.W, tk.E))
         info_frame.columnconfigure(0, weight=1)
 
@@ -298,37 +298,37 @@ class IronDomeGUI:
         scrollbar.grid(row=0, column=1, sticky=(tk.N, tk.S), pady=4)
         self.status_text.configure(yscrollcommand=scrollbar.set)
 
-        chart_frame = ttk.LabelFrame(bottom_frame, text="Biểu đồ dự đoán hướng di chuyển", padding="6")
+        chart_frame = ttk.LabelFrame(bottom_frame, text="Movement Direction Prediction Chart", padding="6")
         chart_frame.grid(row=0, column=1, padx=(6, 0), sticky=(tk.W, tk.E))
         chart_frame.columnconfigure(0, weight=1)
         self.bottom_chart_height = 220
 
         self.heatmap_label = ttk.Label(
             chart_frame,
-            text="Đang chờ dữ liệu quỹ đạo...",
+            text="Awaiting trajectory data...",
             style="Subtitle.TLabel",
             anchor="center"
         )
         self.heatmap_label.grid(row=0, column=0, padx=4, pady=4, sticky=(tk.W, tk.E))
 
-        self.add_status("Hệ thống đã sẵn sàng. Nhấn 'Kết nối Camera' để bắt đầu.")
+        self.add_status("System ready. Press 'Connect Camera' to begin.")
         
     def add_status(self, message):
-        """Thêm thông báo vào khung trạng thái"""
+        """Add a message to the status log."""
         timestamp = time.strftime("%H:%M:%S")
         self.status_text.insert(tk.END, f"[{timestamp}] {message}\n")
         self.status_text.see(tk.END)
 
     def toggle_auto_fire(self):
-        """Cập nhật giao diện và trạng thái tự động khai hỏa."""
+        """Update the UI and auto-fire state."""
         self.update_auto_fire_button()
-        mode = "Đã bật" if self.auto_fire_var.get() else "Đã tắt"
-        self.update_ai_status_panel(note=f"{mode} chế độ tự động khai hỏa")
+        mode = "Enabled" if self.auto_fire_var.get() else "Disabled"
+        self.update_ai_status_panel(note=f"{mode} auto-fire mode")
 
     def update_auto_fire_button(self):
-        """Làm mới giao diện nút tự động khai hỏa."""
+        """Refresh the auto-fire button UI."""
         is_enabled = self.auto_fire_var.get()
-        self.auto_fire_label_var.set("Tự động khai hỏa: BẬT" if is_enabled else "Tự động khai hỏa: TẮT")
+        self.auto_fire_label_var.set("Auto Fire: ON" if is_enabled else "Auto Fire: OFF")
         self.auto_fire_btn.configure(
             bg="#0f766e" if is_enabled else "#334155",
             fg="#f8fafc",
@@ -337,33 +337,33 @@ class IronDomeGUI:
         )
 
     def update_ai_status_panel(self, target=None, predicted_pos=None, note=None):
-        """Cập nhật bảng dự đoán AI ở nửa phải phía dưới."""
+        """Update the AI prediction panel on the right side."""
         if target is None:
             cooldown_remaining = max(0.0, self.fire_cooldown - (time.time() - self.last_fire_time))
-            self.ai_direction_var.set("Đang chờ mục tiêu")
+            self.ai_direction_var.set("Awaiting target")
             self.ai_velocity_var.set("0.0 px/frame")
-            self.ai_prediction_var.set("Chưa có dữ liệu")
-            self.ai_fire_rate_var.set(f"1 tên lửa / {self.fire_cooldown:.1f}s | chờ {cooldown_remaining:.1f}s")
-            self.ai_decision_var.set(note or "AI đang quét mục tiêu và học chuyển động")
+            self.ai_prediction_var.set("No data available")
+            self.ai_fire_rate_var.set(f"1 missile / {self.fire_cooldown:.1f}s | wait {cooldown_remaining:.1f}s")
+            self.ai_decision_var.set(note or "AI scanning for targets and learning movement")
             return
 
         velocity = target.get('velocity', (0, 0))
         speed = float(np.linalg.norm(velocity)) if np is not None else 0.0
         direction = self.describe_direction()
-        prediction_text = f"({predicted_pos[0]}, {predicted_pos[1]})" if predicted_pos else "Đang nội suy thêm"
+        prediction_text = f"({predicted_pos[0]}, {predicted_pos[1]})" if predicted_pos else "Interpolating..."
         cooldown_remaining = max(0.0, self.fire_cooldown - (time.time() - self.last_fire_time))
-        cooldown_text = "sẵn sàng" if cooldown_remaining == 0 else f"chờ {cooldown_remaining:.1f}s"
+        cooldown_text = "ready" if cooldown_remaining == 0 else f"wait {cooldown_remaining:.1f}s"
 
         self.ai_direction_var.set(direction.upper())
         self.ai_velocity_var.set(f"{speed:.1f} px/frame")
         self.ai_prediction_var.set(prediction_text)
-        self.ai_fire_rate_var.set(f"1 tên lửa / {self.fire_cooldown:.1f}s | {cooldown_text}")
-        self.ai_decision_var.set(note or "Mục tiêu đang được theo dõi liên tục")
+        self.ai_fire_rate_var.set(f"1 missile / {self.fire_cooldown:.1f}s | {cooldown_text}")
+        self.ai_decision_var.set(note or "Target is being continuously tracked")
         
     def toggle_camera(self):
-        """Kết nối/ngắt kết nối camera"""
+        """Connect/disconnect the camera."""
         if cv2 is None:
-            messagebox.showerror("Thiếu thư viện", "Chưa cài opencv-python. Hãy cài trước khi mở camera.")
+            messagebox.showerror("Missing Library", "opencv-python is not installed. Please install it before connecting the camera.")
             return
 
         if not self.is_running:
@@ -374,27 +374,27 @@ class IronDomeGUI:
 
                 self.camera = cv2.VideoCapture(source)
 
-                # Fallback: neu nguon cau hinh loi, thu webcam laptop mac dinh.
+                # Fallback: if configured source fails, try the default laptop webcam.
                 if not self.camera.isOpened() and source != 0:
                     self.camera.release()
                     self.camera = cv2.VideoCapture(0)
 
-                # Thu camera thu 2 neu camera 0 khong san sang.
+                # Try secondary camera if camera 0 is not available.
                 if not self.camera.isOpened() and source != 1:
                     self.camera.release()
                     self.camera = cv2.VideoCapture(1)
 
                 if self.camera.isOpened():
                     self.is_running = True
-                    self.start_btn.config(text="Ngắt kết nối")
-                    self.track_btn.config(state='normal', text="Bắt đầu theo dõi", style="Accent.TButton")
-                    self.add_status("Đã kết nối webcam laptop thành công!")
-                    self.update_ai_status_panel(note="Camera đã sẵn sàng, chờ khóa mục tiêu")
+                    self.start_btn.config(text="Disconnect")
+                    self.track_btn.config(state='normal', text="Start Tracking", style="Accent.TButton")
+                    self.add_status("Laptop webcam connected successfully!")
+                    self.update_ai_status_panel(note="Camera ready, awaiting target lock")
                     self.update_frame()
                 else:
-                    messagebox.showerror("Lỗi", "Không thể kết nối webcam. Thu doi CAMERA_URL = 0 hoac 1 trong config.py")
+                    messagebox.showerror("Error", "Cannot connect to webcam. Try setting CAMERA_URL = 0 or 1 in config.py")
             except Exception as e:
-                messagebox.showerror("Lỗi", f"Lỗi kết nối camera: {str(e)}")
+                messagebox.showerror("Error", f"Camera connection error: {str(e)}")
         else:
             self.is_running = False
             self.is_tracking = False
@@ -402,35 +402,35 @@ class IronDomeGUI:
             self.tracker.clear()
             if self.camera:
                 self.camera.release()
-            self.start_btn.config(text="Kết nối Camera")
-            self.track_btn.config(state='disabled', text="Bắt đầu theo dõi", style="Accent.TButton")
-            self.update_ai_status_panel(note="Camera đã ngắt, AI tạm dừng phân tích")
-            self.add_status("Đã ngắt kết nối camera.")
+            self.start_btn.config(text="Connect Camera")
+            self.track_btn.config(state='disabled', text="Start Tracking", style="Accent.TButton")
+            self.update_ai_status_panel(note="Camera disconnected, AI analysis paused")
+            self.add_status("Camera disconnected.")
 
     def toggle_tracking(self):
-        """Bật/tắt theo dõi mục tiêu."""
+        """Enable/disable target tracking."""
         if not self.is_running:
-            self.add_status("Hãy kết nối camera trước khi bật theo dõi.")
+            self.add_status("Please connect the camera before enabling tracking.")
             return
 
         if not self.is_tracking:
             self.is_tracking = True
-            self.track_btn.config(text="Tắt theo dõi", style="Warning.TButton")
-            self.update_ai_status_panel(note="AI đang học quỹ đạo đối phương")
-            self.add_status("Đã bật theo dõi mục tiêu.")
+            self.track_btn.config(text="Stop Tracking", style="Warning.TButton")
+            self.update_ai_status_panel(note="AI learning adversary trajectory")
+            self.add_status("Target tracking enabled.")
         else:
             self.is_tracking = False
             self.current_target_fire_authorized = None
             self.tracker.clear()
-            self.track_btn.config(text="Bắt đầu theo dõi", style="Accent.TButton")
-            self.update_ai_status_panel(note="Đã tắt theo dõi, AI quay về chế độ giám sát")
-            self.add_status("Đã tắt theo dõi mục tiêu.")
+            self.track_btn.config(text="Start Tracking", style="Accent.TButton")
+            self.update_ai_status_panel(note="Tracking disabled, AI returning to monitoring mode")
+            self.add_status("Target tracking disabled.")
         
     def update_frame(self):
-        """Cập nhật frame từ camera"""
+        """Update the frame from the camera."""
         if self.is_running:
             if self.camera is None or not self.camera.isOpened():
-                self.add_status("Mất kết nối camera.")
+                self.add_status("Camera connection lost.")
                 self.toggle_camera()
                 return
 
@@ -438,31 +438,31 @@ class IronDomeGUI:
             if ret:
                 self.current_frame = frame.copy()
                 
-                # Phát hiện và theo dõi mục tiêu
+                # Detect and track targets
                 if self.is_tracking:
                     self.process_targets(frame)
                 else:
-                    self.update_ai_status_panel(note="Theo dõi đang tắt, chỉ hiển thị camera trực tiếp")
+                    self.update_ai_status_panel(note="Tracking disabled, displaying live camera only")
                 
-                # Vẽ vùng bảo vệ
+                # Draw protected zone
                 self.draw_protected_zone(frame)
                 
-                # Vẽ bệ phóng
+                # Draw launcher
                 self.draw_launcher(frame)
 
-                # Cập nhật biểu đồ dự đoán ở panel bên phải phía dưới
+                # Update prediction chart in the bottom right panel
                 self.update_heatmap(frame.shape)
                 
-                # Chuyển đổi frame để hiển thị
+                # Convert frame for display
                 self.display_frame(frame)
                 
-            # Tiếp tục cập nhật
+            # Continue updating
             self.root.after(30, self.update_frame)
             
     def process_targets(self, frame):
-        """Xử lý phát hiện và theo dõi mục tiêu"""
+        """Process target detection and tracking."""
         if not self.tracker.current_target:
-            # Phát hiện mục tiêu mới
+            # Detect new target
             detections = self.detector.detect(frame)
             if detections:
                 target = self.select_lockable_target(detections)
@@ -472,15 +472,15 @@ class IronDomeGUI:
                     if human_detection:
                         self.log_status_with_cooldown(
                             "human-block",
-                            "Phát hiện con người: khóa an toàn đang bật, hệ thống KHÔNG khai hỏa."
+                            "Human detected: safety lock engaged, system WILL NOT fire."
                         )
-                        self.update_ai_status_panel(note="Mục tiêu là con người, AI từ chối khóa bắn")
+                        self.update_ai_status_panel(note="Target is human, AI refuses to engage")
                     else:
                         self.log_status_with_cooldown(
                             "non-air-block",
-                            "Mục tiêu không phải máy bay/UAV, AI bỏ qua và tiếp tục quét."
+                            "Target is not an aircraft/UAV, AI skipping and continuing scan."
                         )
-                        self.update_ai_status_panel(note="Chỉ khóa mục tiêu máy bay hoặc drone UAV")
+                        self.update_ai_status_panel(note="Only locking aircraft or drone/UAV targets")
                     return
 
                 bbox = target['bbox']
@@ -495,9 +495,9 @@ class IronDomeGUI:
                 target_name = target.get('class_name', 'unknown')
                 self.current_target_fire_authorized = self.ask_fire_confirmation(target)
 
-                lock_note = "Đã khóa mục tiêu máy bay/UAV, đang giám sát quỹ đạo"
+                lock_note = "Aircraft/UAV target locked, monitoring trajectory"
                 if self.current_target_fire_authorized is False:
-                    lock_note = "Mục tiêu đã khóa nhưng chưa được phép khai hỏa"
+                    lock_note = "Target locked but fire not authorized"
 
                 self.update_ai_status_panel(
                     target=self.tracker.current_target,
@@ -505,43 +505,43 @@ class IronDomeGUI:
                     note=lock_note
                 )
                 self.add_status(
-                    f"Đã phát hiện mục tiêu: {target_name} | Độ tin cậy: {target['confidence']:.2f}"
+                    f"Target detected: {target_name} | Confidence: {target['confidence']:.2f}"
                 )
             else:
                 self.current_target_fire_authorized = None
-                self.update_ai_status_panel(note="AI chưa phát hiện máy bay/UAV trong khung hình")
+                self.update_ai_status_panel(note="AI has not detected aircraft/UAV in frame")
         else:
-            # Theo dõi mục tiêu hiện tại
+            # Track current target
             target = self.tracker.update(frame)
             if target:
-                # Vẽ bounding box
+                # Draw bounding box
                 x, y, w, h = target['bbox']
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 cv2.circle(frame, target['center'], 5, (0, 0, 255), -1)
                 
-                # Hiển thị vận tốc
+                # Display velocity
                 velocity = target['velocity']
                 cv2.putText(frame, f"Velocity: ({velocity[0]:.1f}, {velocity[1]:.1f})", 
                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
                 
-                # Dự đoán vị trí tương lai
+                # Predict future position
                 predicted_pos = self.tracker.predict_future_position()
                 if predicted_pos:
                     cv2.circle(frame, predicted_pos, 10, (255, 255, 0), 2)
                     
-                # Kiểm tra và khai hỏa
+                # Check and fire
                 if self.auto_fire_var.get():
                     note = self.check_and_fire(target, predicted_pos)
                 else:
-                    note = "Tự động khai hỏa đang tắt, AI chỉ giám sát mục tiêu"
+                    note = "Auto-fire disabled, AI monitoring target only"
 
                 self.update_ai_status_panel(target=target, predicted_pos=predicted_pos, note=note)
             else:
                 self.current_target_fire_authorized = None
-                self.update_ai_status_panel(note="Mất dấu mục tiêu, AI đang quét lại")
+                self.update_ai_status_panel(note="Target lost, AI re-scanning")
 
     def is_air_target(self, class_name):
-        """Xác định mục tiêu bay đủ điều kiện khóa và xin phép khai hỏa."""
+        """Determine if the target is an airborne object eligible for lock and fire authorization."""
         if not class_name:
             return False
         name = str(class_name).strip().lower()
@@ -549,7 +549,7 @@ class IronDomeGUI:
         return any(keyword in name for keyword in keywords)
 
     def is_human_target(self, class_name):
-        """Xác định mục tiêu là con người để khóa an toàn, không cho phép bắn."""
+        """Determine if the target is a human, triggering the safety lock to prevent firing."""
         if not class_name:
             return False
         name = str(class_name).strip().lower()
@@ -557,14 +557,14 @@ class IronDomeGUI:
         return any(keyword in name for keyword in keywords)
 
     def select_lockable_target(self, detections):
-        """Chỉ chọn mục tiêu có thể khóa: máy bay hoặc drone/UAV."""
+        """Select only lockable targets: aircraft or drone/UAV."""
         for detection in detections:
             if self.is_air_target(detection.get('class_name')):
                 return detection
         return None
 
     def log_status_with_cooldown(self, key, message, cooldown=2.0):
-        """Giảm spam log trạng thái khi cùng một cảnh báo lặp lại liên tục."""
+        """Reduce log spam when the same warning repeats continuously."""
         now = time.time()
         last_time = self.last_status_log_by_key.get(key, 0.0)
         if now - last_time >= cooldown:
@@ -572,44 +572,44 @@ class IronDomeGUI:
             self.add_status(message)
 
     def ask_fire_confirmation(self, detection):
-        """Hiển thị hộp thoại xác nhận khai hỏa khi phát hiện mục tiêu bay."""
+        """Show a fire confirmation dialog when an airborne target is detected."""
         class_name = detection.get('class_name', 'unknown')
         confidence = detection.get('confidence', 0.0)
         target_pos = detection.get('center')
         message = (
-            "Phát hiện mục tiêu bay có nguy cơ xâm nhập.\n\n"
-            f"Loại mục tiêu: {class_name}\n"
-            f"Độ tin cậy: {confidence:.2f}\n"
-            f"Tọa độ hiện tại: {target_pos}\n\n"
-            "Xác nhận khai hỏa khi mục tiêu vào vùng bảo vệ?"
+            "Airborne target detected with potential intrusion risk.\n\n"
+            f"Target type: {class_name}\n"
+            f"Confidence: {confidence:.2f}\n"
+            f"Current coordinates: {target_pos}\n\n"
+            "Confirm firing authorization when target enters the protected zone?"
         )
 
-        is_authorized = messagebox.askyesno("Xác nhận khai hỏa", message)
+        is_authorized = messagebox.askyesno("Fire Confirmation", message)
         self.log_confirmation_command(detection, is_authorized)
         if is_authorized:
-            self.add_status("Người vận hành đã CHẤP THUẬN khai hỏa mục tiêu bay.")
+            self.add_status("Operator has AUTHORIZED firing on airborne target.")
         else:
-            self.add_status("Người vận hành đã TỪ CHỐI khai hỏa mục tiêu bay.")
+            self.add_status("Operator has DENIED firing on airborne target.")
         return is_authorized
 
     def log_lock_command(self, detection):
-        """Ghi nhận lệnh khóa mục tiêu vào bảng trạng thái."""
+        """Record the target lock command in the status log."""
         class_name = detection.get('class_name', 'unknown')
         center = detection.get('center')
         confidence = detection.get('confidence', 0.0)
         self.add_status(
-            f"LỆNH KHOÁ MỤC TIÊU | loại={class_name} | tin_cậy={confidence:.2f} | tọa_độ={center}"
+            f"TARGET LOCK COMMAND | type={class_name} | confidence={confidence:.2f} | coordinates={center}"
         )
 
     def log_confirmation_command(self, detection, is_authorized):
-        """Ghi nhận lệnh xác nhận mục tiêu trước khai hỏa."""
+        """Record the fire confirmation command in the status log."""
         class_name = detection.get('class_name', 'unknown')
         center = detection.get('center')
-        command = "XÁC NHẬN MỤC TIÊU: CHẤP THUẬN" if is_authorized else "XÁC NHẬN MỤC TIÊU: TỪ CHỐI"
-        self.add_status(f"{command} | loại={class_name} | tọa_độ={center}")
+        command = "TARGET CONFIRMATION: AUTHORIZED" if is_authorized else "TARGET CONFIRMATION: DENIED"
+        self.add_status(f"{command} | type={class_name} | coordinates={center}")
                     
     def draw_protected_zone(self, frame):
-        """Vẽ khu vực bảo vệ"""
+        """Draw the protected zone on the frame."""
         pz = self.config.PROTECTED_ZONE
         cv2.rectangle(frame, (pz['x1'], pz['y1']), (pz['x2'], pz['y2']), 
                      (255, 0, 0), 2)
@@ -617,64 +617,64 @@ class IronDomeGUI:
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
         
     def draw_launcher(self, frame):
-        """Vẽ bệ phóng tên lửa"""
+        """Draw the missile launcher on the frame."""
         cv2.circle(frame, self.launcher.position, 10, (0, 0, 255), -1)
         cv2.putText(frame, "LAUNCHER", 
                    (self.launcher.position[0] - 30, self.launcher.position[1] - 15), 
                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         
-        # Vẽ tên lửa đang bay
+        # Draw active missiles
         for missile in self.launcher.active_missiles:
             if missile.is_active:
                 cv2.circle(frame, (int(missile.current_pos[0]), 
                                   int(missile.current_pos[1])), 5, (0, 255, 255), -1)
-                # Vẽ đường bay
+                # Draw trajectory
                 for i in range(1, len(missile.trajectory)):
                     cv2.line(frame, missile.trajectory[i-1], missile.trajectory[i], 
                             (0, 255, 255), 1)
             elif missile.has_hit:
-                # Vẽ hiệu ứng nổ
+                # Draw explosion effect
                 for particle in missile.explosion_particles:
                     if particle['life'] > 0:
                         cv2.circle(frame, (int(particle['pos'][0]), 
                                           int(particle['pos'][1])), 
                                  3, (0, 0, 255), -1)
-                        # Cập nhật vị trí hạt
+                        # Update particle position
                         particle['pos'][0] += particle['vel'][0]
                         particle['pos'][1] += particle['vel'][1]
                         particle['life'] -= 1
                         
     def check_and_fire(self, target, predicted_pos=None):
-        """Kiểm tra và bắn tên lửa nếu cần"""
+        """Check conditions and fire a missile if required."""
         target_name = target.get('class_name', '')
         if not self.is_air_target(target_name):
-            return "Chế độ an toàn: chỉ cho phép bắn mục tiêu máy bay/UAV"
+            return "Safety mode: only permitted to fire at aircraft/UAV targets"
 
         if self.current_target_fire_authorized is False:
-            return "Đang chờ lệnh mới: người vận hành đã từ chối khai hỏa"
+            return "Awaiting new command: operator has denied firing"
 
         predicted_pos = predicted_pos or self.tracker.predict_future_position(frames_ahead=10)
         if not predicted_pos:
-            return "Chưa đủ dữ liệu để dự đoán điểm chặn"
+            return "Insufficient data to predict intercept point"
             
         pz = self.config.PROTECTED_ZONE
         
-        # Kiểm tra nếu mục tiêu đang tiến vào vùng bảo vệ
+        # Check if target is moving toward the protected zone
         if (pz['x1'] <= predicted_pos[0] <= pz['x2'] and 
             pz['y1'] <= predicted_pos[1] <= pz['y2']):
             elapsed = time.time() - self.last_fire_time
             if elapsed < self.fire_cooldown:
-                return f"Bệ phóng đang hồi nạp, còn {self.fire_cooldown - elapsed:.1f}s"
+                return f"Launcher reloading, {self.fire_cooldown - elapsed:.1f}s remaining"
             
-            # Bắn tên lửa vào vị trí dự đoán
+            # Fire missile at predicted position
             self.launcher.fire(target['center'])
             self.last_fire_time = time.time()
-            self.add_status(f"Đã khai hỏa! Mục tiêu tại {target['center']}")
-            return "Đã khai hỏa theo dự đoán AI"
-        return "Mục tiêu chưa tiến vào vùng cần đánh chặn"
+            self.add_status(f"Fired! Target at {target['center']}")
+            return "Fired based on AI prediction"
+        return "Target has not entered the intercept zone"
             
     def display_frame(self, frame):
-        """Hiển thị frame lên giao diện"""
+        """Display the frame in the GUI."""
         if cv2 is None or Image is None or ImageTk is None:
             return
 
@@ -683,7 +683,7 @@ class IronDomeGUI:
         if w < 10 or h < 10:
             w, h = self.preview_size
         else:
-            # Giới hạn nhẹ để camera không quá to trên màn hình lớn.
+            # Limit size so the camera feed does not become too large on big screens.
             w = min(w, self.preview_size[0])
             h = min(h, self.preview_size[1])
 
@@ -696,12 +696,12 @@ class IronDomeGUI:
         self.video_label.image = frame_tk
 
     def update_heatmap(self, frame_shape):
-        """Hiển thị heatmap quỹ đạo và hướng di chuyển dự đoán ở bên phải camera."""
+        """Display the trajectory heatmap and predicted movement direction on the right panel."""
         if self.heatmap_label is None:
             return
 
         if cv2 is None or np is None or Image is None or ImageTk is None or ImageDraw is None:
-            self.heatmap_label.config(text="Thiếu thư viện để dựng heatmap", image="")
+            self.heatmap_label.config(text="Missing libraries to render heatmap", image="")
             self.heatmap_label.image = None
             return
 
@@ -713,7 +713,7 @@ class IronDomeGUI:
         if hmap_h < 10:
             hmap_h = self.bottom_chart_height
 
-        # Giữ kích cỡ biểu đồ nhỏ tương đương thanh trạng thái hệ thống cũ.
+        # Keep the chart height compact, equivalent to the old system status bar.
         hmap_h = min(hmap_h, self.bottom_chart_height)
 
         heatmap = self.build_prediction_heatmap(frame_shape, hmap_w, hmap_h)
@@ -722,7 +722,7 @@ class IronDomeGUI:
         self.heatmap_label.image = heatmap_tk
 
     def build_prediction_heatmap(self, frame_shape, hmap_w=None, hmap_h=None):
-        """Dựng heatmap từ lịch sử di chuyển và các điểm dự đoán tương lai."""
+        """Build a heatmap from movement history and future prediction points."""
         frame_height, frame_width = frame_shape[:2]
         heatmap_width = hmap_w or self.heatmap_size[0]
         heatmap_height = hmap_h or self.heatmap_size[1]
@@ -774,19 +774,19 @@ class IronDomeGUI:
 
         direction_label = self.describe_direction()
         draw.rounded_rectangle((10, 10, heatmap_width - 10, 44), radius=10, fill=(15, 23, 42, 215))
-        draw.text((18, 18), f"Huong du doan: {direction_label}", fill="#e5e7eb")
+        draw.text((18, 18), f"Predicted direction: {direction_label}", fill="#e5e7eb")
 
         return heatmap_image
 
     def draw_heatmap_grid(self, draw, width, height):
-        """Vẽ lưới tham chiếu giúp dễ đọc heatmap hơn."""
+        """Draw a reference grid on the heatmap for easier reading."""
         for x in range(0, width, 40):
             draw.line((x, 0, x, height), fill="#334155", width=1)
         for y in range(0, height, 40):
             draw.line((0, y, width, y), fill="#334155", width=1)
 
     def get_prediction_points(self, frame_width, frame_height):
-        """Tạo chuỗi điểm dự đoán theo vận tốc trung bình gần nhất."""
+        """Generate a series of prediction points based on the most recent average velocity."""
         if not self.tracker.current_target or len(self.tracker.velocity_history) < 2:
             return []
 
@@ -804,7 +804,7 @@ class IronDomeGUI:
         return prediction_points
 
     def map_point_to_heatmap(self, point, frame_width, frame_height, hmap_w=None, hmap_h=None):
-        """Scale điểm trong frame camera sang hệ toạ độ heatmap."""
+        """Scale a point from camera frame coordinates to heatmap coordinates."""
         w = hmap_w or self.heatmap_size[0]
         h = hmap_h or self.heatmap_size[1]
         x = int(point[0] * w / max(1, frame_width))
@@ -814,25 +814,25 @@ class IronDomeGUI:
         return (x, y)
 
     def describe_direction(self):
-        """Mô tả ngắn hướng di chuyển hiện tại của mục tiêu."""
+        """Briefly describe the current movement direction of the target."""
         if len(self.tracker.velocity_history) < 2:
-            return "on dinh"
+            return "stable"
 
         avg_velocity = np.mean(self.tracker.velocity_history, axis=0)
-        horizontal = "phai" if avg_velocity[0] > 1 else "trai" if avg_velocity[0] < -1 else "giu nguyen"
-        vertical = "xuong" if avg_velocity[1] > 1 else "len" if avg_velocity[1] < -1 else "giu nguyen"
+        horizontal = "right" if avg_velocity[0] > 1 else "left" if avg_velocity[0] < -1 else "stationary"
+        vertical = "down" if avg_velocity[1] > 1 else "up" if avg_velocity[1] < -1 else "stationary"
 
-        if horizontal == "giu nguyen" and vertical == "giu nguyen":
-            return "on dinh"
-        if horizontal == "giu nguyen":
+        if horizontal == "stationary" and vertical == "stationary":
+            return "stable"
+        if horizontal == "stationary":
             return vertical
-        if vertical == "giu nguyen":
+        if vertical == "stationary":
             return horizontal
         return f"{vertical} {horizontal}"
         
     def quit_app(self):
-        """Thoát ứng dụng"""
-        if messagebox.askokcancel("Thoát", "Bạn có chắc muốn thoát?"):
+        """Quit the application."""
+        if messagebox.askokcancel("Quit", "Are you sure you want to quit?"):
             self.is_running = False
             if self.camera:
                 self.camera.release()
