@@ -1,13 +1,13 @@
 # config.py
 class Config:
     # Camera settings
-    CAMERA_URL = 0  # Webcam laptop mac dinh (0). Thu 1, 2 neu may co nhieu camera.
+    CAMERA_URL = 0  # Default laptop webcam (0). Try 1 or 2 if your machine has multiple cameras.
     
     # Detection settings
     CONFIDENCE_THRESHOLD = 0.5
-    TARGET_CLASSES = [0, 2, 5, 7]  # person, car, bus, truck (có thể thay đổi)
+    TARGET_CLASSES = [0, 2, 5, 7]  # person, car, bus, truck (can be changed)
     
-    # Protected zone (khu vực cần bảo vệ)
+    # Protected zone
     PROTECTED_ZONE = {
         'x1': 200,
         'y1': 150,

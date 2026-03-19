@@ -10,27 +10,27 @@ def main():
     print("=" * 50)
     print("NEUROSHIELD AI")
     print("=" * 50)
-    print("\nĐang khởi tạo hệ thống...")
+    print("\nInitializing system...")
     
-    # Khởi tạo các thành phần
+    # Initialize components
     config = Config()
     detector = TargetDetector()
     tracker = TargetTracker()
     launcher = MissileLauncher()
     
-    # Tạo giao diện
+    # Create GUI
     root = tk.Tk()
     app = IronDomeGUI(root, detector, tracker, launcher, config)
     
-    print("Hệ thống đã sẵn sàng!")
-    print("\nHướng dẫn:")
-    print("1. Đảm bảo webcam laptop đang hoạt động")
-    print("2. Nhấn 'Kết nối Camera' để bắt đầu")
-    print("3. Nhấn 'Bắt đầu theo dõi' để phát hiện mục tiêu")
-    print("4. Tick 'Tự động khai hỏa' để bắn tự động")
+    print("System ready!")
+    print("\nInstructions:")
+    print("1. Ensure the laptop webcam is active")
+    print("2. Press 'Connect Camera' to begin")
+    print("3. Press 'Start Tracking' to detect targets")
+    print("4. Check 'Auto Fire' to enable automatic firing")
     print("=" * 50)
     
-    # Chạy ứng dụng
+    # Run the application
     root.protocol("WM_DELETE_WINDOW", app.quit_app)
     root.mainloop()
 

@@ -18,7 +18,7 @@ class TargetTracker:
         self.fallback_mode = False
 
     def _create_tracker(self):
-        """Tạo tracker khả dụng theo phiên bản OpenCV hiện tại."""
+        """Create an available tracker for the current OpenCV version."""
         if cv2 is None:
             return None
 
@@ -43,7 +43,7 @@ class TargetTracker:
         return None
         
     def add_tracker(self, frame, bbox, class_id=None, class_name=None):
-        """Thêm tracker mới cho mục tiêu"""
+        """Add a new tracker for a target."""
         x, y, w, h = [int(v) for v in bbox]
         w = max(1, w)
         h = max(1, h)
@@ -67,7 +67,7 @@ class TargetTracker:
         }
         
     def update(self, frame):
-        """Cập nhật vị trí mục tiêu"""
+        """Update the target position."""
         if self.fallback_mode and self.current_target:
             x, y, w, h = self.current_target['bbox']
             vx, vy = self.current_target['velocity']
@@ -94,7 +94,7 @@ class TargetTracker:
             previous_class_id = self.current_target.get('class_id') if self.current_target else None
             previous_class_name = self.current_target.get('class_name') if self.current_target else "unknown"
             
-            # Lưu vị trí hiện tại
+            # Save current position
             if self.current_target:
                 self.target_positions.append(self.current_target['center'])
             
@@ -115,7 +115,7 @@ class TargetTracker:
             return None
     
     def _calculate_velocity(self, current_center):
-        """Tính vận tốc dựa trên lịch sử vị trí"""
+        """Calculate velocity based on position history."""
         if len(self.target_positions) > 1:
             prev_center = self.target_positions[-1]
             dx = current_center[0] - prev_center[0]
@@ -126,7 +126,7 @@ class TargetTracker:
         return (0, 0)
     
     def predict_future_position(self, frames_ahead=5):
-        """Dự đoán vị trí tương lai"""
+        """Predict future position."""
         if not self.current_target or len(self.velocity_history) < 3:
             return None
             
@@ -139,7 +139,7 @@ class TargetTracker:
         return (predicted_x, predicted_y)
     
     def clear(self):
-        """Xóa tất cả trackers"""
+        """Clear all trackers."""
         self.trackers.clear()
         self.tracker_types.clear()
         self.target_positions.clear()
